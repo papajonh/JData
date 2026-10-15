@@ -222,6 +222,8 @@ console.log(dados["Usuário"].nome);
 
 ```
 
+Exemplo em PHP:
+
 ```<?php
 
 require_once 'jdata.php';
@@ -246,6 +248,8 @@ Para acessar uma propriedade:
 echo $dados['Usuário']['nome'];
 
 ```
+
+Exemplo em Python:
 
 ```Python
 
