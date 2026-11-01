@@ -1,0 +1,258 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Testador JData</title>
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      font-family: Arial, sans-serif;
+      background: #f3f4f6;
+      color: #202124;
+    }
+
+    main {
+      max-width: 1100px;
+      margin: auto;
+    }
+
+    h1 {
+      margin-top: 0;
+    }
+
+    .painel {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    section {
+      min-width: 0;
+      padding: 16px;
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 350px;
+      padding: 12px;
+      border: 1px solid #bbb;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 14px;
+      resize: vertical;
+      tab-size: 2;
+    }
+
+    button {
+      margin: 10px 5px 0 0;
+      padding: 10px 14px;
+      border: 0;
+      border-radius: 5px;
+      background: #175cd3;
+      color: white;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1249a8;
+    }
+
+    #status {
+      margin-top: 16px;
+      padding: 12px;
+      border-radius: 5px;
+      background: #e5e7eb;
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 700px) {
+      .painel {
+        grid-template-columns: 1fr;
+      }
+
+      textarea {
+        min-height: 250px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <main>
+    <h1>Testador JData</h1>
+    <p>
+      Converta JData para JSON e JSON para JData.
+      A biblioteca libJData.js deve estar nesta mesma pasta.
+    </p>
+
+    <div class="painel">
+      <section>
+        <h2>Entrada JData</h2>
+
+        <textarea id="jdata" spellcheck="false"># Exemplo JData
+[Usuário]
+$id 1
+$nome João
+$ativo true
+<endereços>
+*logradouro Rua Central
+*bairro Centro
+*<alternativos>
+**logradouro Rua das Flores
+**bairro Centro
+*logradouro Avenida Principal</textarea>
+
+        <button id="parse">JData → JSON</button>
+        <button id="roundtrip">Testar ida e volta</button>
+        <button id="restore">Restaurar exemplo</button>
+      </section>
+
+      <section>
+        <h2>Resultado JSON</h2>
+
+        <textarea id="json" spellcheck="false">{
+  "Usuário": {
+    "id": 1,
+    "nome": "João",
+    "ativo": true,
+    "endereços": [
+      {"logradouro": "Rua Central"},
+      {"bairro": "Centro"},
+      {
+        "alternativos": [
+          {"logradouro": "Rua das Flores"},
+          {"bairro": "Centro"}
+        ]
+      },
+      {"logradouro": "Avenida Principal"}
+    ]
+  }
+}</textarea>
+
+        <button id="stringify">JSON → JData</button>
+        <button id="clear">Limpar resultados</button>
+      </section>
+    </div>
+
+    <div id="status" role="status">Pronto para testar.</div>
+  </main>
+
+  <script src="../libJData/javascript/jdata.js"></script>
+
+  <script>
+    const jdataInput = document.getElementById("jdata");
+    const jsonInput = document.getElementById("json");
+    const status = document.getElementById("status");
+
+    const exemplo = jdataInput.value;
+
+    function report(message, error = false) {
+      status.textContent = message;
+      status.style.background = error ? "#fee2e2" : "#dcfce7";
+      status.style.color = error ? "#991b1b" : "#166534";
+    }
+
+    function parseJData() {
+      try {
+        const resultado = JData.parse(jdataInput.value);
+
+        jsonInput.value = JSON.stringify(resultado, null, 2);
+
+        report("JData convertido para JSON com sucesso.");
+        return resultado;
+      } catch (error) {
+        report(error.message, true);
+        return null;
+      }
+    }
+
+    function stringifyJSON() {
+      try {
+        const objeto = JSON.parse(jsonInput.value);
+        const resultado = JData.stringify(objeto);
+
+        jdataInput.value = resultado;
+
+        report("JSON convertido para JData com sucesso.");
+        return resultado;
+      } catch (error) {
+        report(error.message, true);
+        return null;
+      }
+    }
+
+    document.getElementById("parse").addEventListener(
+      "click",
+      parseJData
+    );
+
+    document.getElementById("stringify").addEventListener(
+      "click",
+      stringifyJSON
+    );
+
+    document.getElementById("roundtrip").addEventListener(
+      "click",
+      () => {
+        try {
+          const original = JData.parse(jdataInput.value);
+          const convertido = JData.stringify(original);
+          const recuperado = JData.parse(convertido);
+
+          jsonInput.value = JSON.stringify(recuperado, null, 2);
+          jdataInput.value = convertido;
+
+          report(
+            "Conversão de ida e volta concluída.\n\n" +
+            "JData → JSON → JData → JSON"
+          );
+        } catch (error) {
+          report(error.message, true);
+        }
+      }
+    );
+
+    document.getElementById("restore").addEventListener(
+      "click",
+      () => {
+        jdataInput.value = exemplo;
+        report("Exemplo restaurado.");
+      }
+    );
+
+    document.getElementById("clear").addEventListener(
+      "click",
+      () => {
+        jsonInput.value = "";
+        report("Campo JSON limpo.");
+      }
+    );
+
+    // Verifica se a biblioteca foi carregada.
+    if (
+      typeof JData === "undefined" ||
+      typeof JData.parse !== "function" ||
+      typeof JData.stringify !== "function"
+    ) {
+      report(
+        "Não foi possível carregar libJData.js. " +
+        "Verifique se os dois arquivos estão na mesma pasta.",
+        true
+      );
+    }
+  </script>
+</body>
+</html>
