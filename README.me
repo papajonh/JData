@@ -1,0 +1,225 @@
+# JData
+
+O JData é um formato de dados leve e legível por humanos, criado para representar estruturas hierárquicas (objetos, listas e listas de listas) sem a necessidade de chaves `{}`, vírgulas `,` ou aspas obrigatórias, como no JSON. Ele usa marcadores simples e permite organizar informações em sessões, propriedades, listas e listas aninhadas. Os arquivos usam a extensão `.jdata`.
+
+O formato foi projetado para ser legível por humanos, editável à mão, hierárquico, portável entre linguagens (JavaScript, PHP e Python) e compatível com JSON — todo JData pode ser convertido para JSON e vice-versa.
+
+## Sumário
+
+- [Instalação](#instalação)
+- [Sintaxe](#sintaxe)
+  - [Comentários](#comentários)
+  - [Sessões](#sessões)
+  - [Propriedades](#propriedades)
+  - [Listas](#listas)
+  - [Listas anônimas](#listas-anônimas)
+  - [Listas aninhadas](#listas-aninhadas)
+  - [Objetos com múltiplas chaves](#objetos-com-múltiplas-chaves)
+- [Regras de interpretação](#regras-de-interpretação)
+- [Conversão JSON ↔ JData](#conversão-json--jdata)
+- [Uso](#uso)
+  - [JavaScript](#javascript)
+  - [PHP](#php)
+  - [Python](#python)
+- [Exemplo completo](#exemplo-completo)
+- [Aplicações](#aplicações)
+- [Limitações](#limitações)
+- [Licença](#licença)
+
+## Instalação
+
+### JavaScript
+
+Copie o arquivo `jdata.js` para o seu projeto:
+
+```js
+const JData = require("./jdata");
+
+```php
+require_once 'jdata.php';
+
+```python
+from jdata import parse, stringify
+
+Sintaxe
+Comentários
+
+Linhas iniciadas por # são ignoradas pelo interpretador.
+text
+
+# Este é um comentário
+[Usuário]
+$id 1
+$nome João
+
+Sessões
+
+Uma sessão começa com um nome entre colchetes []. Ela agrupa propriedades e listas relacionadas. Cada sessão vira uma chave do objeto raiz.
+text
+
+[Usuário]
+$id 1
+$nome João
+$ativo true
+
+[Endereço]
+$cidade Tianguá
+$estado Ceará
+
+Equivalente em JSON:
+json
+
+{
+  "Usuário": {
+    "id": 1,
+    "nome": "João",
+    "ativo": true
+  },
+  "Endereço": {
+    "cidade": "Tianguá",
+    "estado": "Ceará"
+  }
+}
+
+Propriedades
+
+As propriedades começam com $, seguido por uma chave e seu valor, separados por um espaço. A sintaxe é $chave valor.
+text
+
+[Usuário]
+$id 1
+$nome João
+$idade 25
+$ativo true
+
+Valores podem ser textos, números, booleanos e null.
+Listas
+
+Uma lista é iniciada por um nome delimitado pelos caracteres < e >.
+text
+
+[Usuário]
+<contatos>
+*joao@example.com
+*maria@example.com
+
+Cada elemento começa com *. Também é possível utilizar elementos com chaves:
+text
+
+[Usuário]
+<endereço>
+*rua Rua Principal
+*bairro Centro
+*cep 62338-000
+
+Listas anônimas
+
+Uma lista sem nome é representada por <>. É usada para listas dentro de listas (arrays de arrays).
+text
+
+[coords]
+<0>
+*-3.859889941789373
+*-40.92374824907506
+<1>
+*-3.8550167124997192
+*-40.92274462693359
+
+Equivalente em JSON:
+json
+
+{
+  "coords": [
+    [-3.859889941789373, -40.92374824907506],
+    [-3.8550167124997192, -40.92274462693359]
+  ]
+}
+
+O nome <0>, <1> é apenas um marcador de índice. Ao converter de volta para JSON, o parse remove o índice e devolve o array puro.
+Listas aninhadas
+
+O JData permite criar listas aninhadas utilizando asteriscos (*) para identificar os níveis hierárquicos. A quantidade de asteriscos determina a qual nível uma lista ou um elemento pertence.
+Sintaxe	Significado
+<lista>	Lista de nível 0
+*<lista>	Lista de nível 1
+**<lista>	Lista de nível 2
+***<lista>	Lista de nível 3
+Sintaxe	Significado
+*valor	Elemento da lista de nível 0
+**valor	Elemento da lista de nível 1
+***valor	Elemento da lista de nível 2
+****valor	Elemento da lista de nível 3
+
+Exemplo:
+text
+
+[Empresa]
+<departamentos>
+*<desenvolvimento>
+**nome Desenvolvimento
+**<equipes>
+***nome Backend
+***nome Frontend
+*<suporte>
+**nome Suporte Técnico
+**<equipes>
+***nome Redes
+***nome Sistemas
+
+Nesse exemplo, departamentos é a lista de nível 0, desenvolvimento e suporte são listas de nível 1, nome Desenvolvimento e nome Suporte Técnico são elementos de nível 1, equipes é uma lista de nível 2 dentro de cada departamento, e nome Backend, nome Frontend, nome Redes e nome Sistemas são elementos de nível 2.
+Retorno aos níveis anteriores
+
+O JData não utiliza marcadores explícitos de fechamento, como chaves ou tags finais. O retorno a um nível anterior é determinado pela redução da quantidade de asteriscos na próxima declaração.
+text
+
+<listas>
+*<a>
+**1
+**2
+*<b>
+***1
+***2
+*0
+
+Aqui, *<b> fecha a lista a, e *0 fecha a lista b e vira elemento escalar de listas.
+Objetos com múltiplas chaves
+
+Objetos com mais de uma chave dentro de uma lista são representados por *<> seguido de **chave valor.
+text
+
+[data]
+<features>
+*<>
+**bbox
+***-40.923742
+***-3.859946
+**type Feature
+**<properties>
+***<way_points>
+****0
+****12
+****29
+***<summary>
+****distance 1733.9
+****duration 215.9
+
+Equivalente em JSON:
+json
+
+{
+  "data": {
+    "features": [
+      {
+        "bbox": [-40.923742, -3.859946],
+        "type": "Feature",
+        "properties": {
+          "way_points": [0, 12, 29],
+          "summary": {
+            "distance": 1733.9,
+            "duration": 215.9
+          }
+        }
+      }
+    ]
+  }
+}
